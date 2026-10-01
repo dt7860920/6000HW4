@@ -26,7 +26,7 @@ def compute_memory_usage(filepath=None):
 if __name__ == "__main__":
   memory_pre = compute_memory_usage('outputs/hw04-2-duckdb-pre.txt')
   print(f'{memory_pre:.2f} MB used pre-computation')
-  s3_uri = 's3://dsan6000-data/acled_events.parquet'
+  s3_uri = "s3://dsan6000-data/acled_civilian_events.parquet"
   # Provided code for you: establishes an in-memory DuckDB database and installs
   # the httpfs extension, allowing direct queries of S3 buckets over HTTP
   con = duckdb.connect()
@@ -37,12 +37,26 @@ if __name__ == "__main__":
   # main notebook, then use plt.savefig() to export it as
   # yearly_fatalities_duckdb.svg
   
-  yearly_count_query = """
-  SELECT * FROM 's3://dsan6000-data/acled_events.parquet'
-  LIMIT 5;
+  yearly_count_query = f"""
+      SELECT year, SUM(fatalities) AS fatalities
+      FROM '{s3_uri}'
+      WHERE year BETWEEN 2018 AND 2024
+      GROUP BY year
+      ORDER BY year
   """
   result_df = con.execute(yearly_count_query).df()
   print(result_df)
+
+  sns.lineplot(
+      data=result_df,
+      x="year",
+      y="fatalities",
+      marker="o"
+  )
+  plt.title("ACLED: Yearly Fatality Counts (DuckDB)")
+  plt.tight_layout()
+  plt.savefig("images/yearly_fatalities_duckdb.svg")
+  plt.close()
   
   memory_post = compute_memory_usage('outputs/hw04-2-duckdb-post.txt')
   print(f'{memory_post:.2f} MB used post-computation')
